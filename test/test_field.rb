@@ -1,4 +1,5 @@
 require 'unittest'
+require 'contracts'
 require 'field'
 
 class FieldTest < Test::Unit::TestCase
@@ -54,5 +55,20 @@ class FieldTest < Test::Unit::TestCase
 		assert_equal nil, field.find_winner
 		field.step 1, 1, O
 		assert_equal O, field.find_winner
+	end
+
+	def test_to_array
+		field = Field.new 3, 3
+		field.step 0, 2, O
+		field.step 1, 1, X
+		field.step 2, 0, O
+		expected = [
+			{'row' => 0, 'col' => 2, 'value' => O},
+			{'row' => 1, 'col' => 1, 'value' => X},
+			{'row' => 2, 'col' => 0, 'value' => O},
+		]
+		actual = field.to_a
+		assert_true actual.is_a? Array
+		assert_equal expected, actual
 	end
 end

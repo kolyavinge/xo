@@ -1,13 +1,17 @@
-CELL_EMPTY = 1
-X     = 2
-O     = 3
+require 'contracts'
 
 class Cell
+
 	attr_accessor :row, :col, :value
+	
 	def initialize row, col, value
 		@row = row
 		@col = col
 		@value = value
+	end
+
+	def to_hash
+		{'row' => @row, 'col' => @col, 'value' => @value}
 	end
 end
 
@@ -48,6 +52,10 @@ class Field
 		vert = get_line_length(1,0) + get_line_length(-1,0) + 1
 		return @last_cell.value if vert >= @line_length
 		return nil
+	end
+
+	def to_a
+		@cells.select{ |cell| cell.value != CELL_EMPTY }.map{ |cell| cell.to_hash }
 	end
 
 	private

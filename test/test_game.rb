@@ -1,4 +1,5 @@
 require 'unittest'
+require 'contracts'
 require 'field'
 require 'game'
 
