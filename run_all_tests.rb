@@ -7,4 +7,4 @@ require 'test/unit'
 require 'unittest'
 require 'test_field'
 require 'test_game'
-require 'test_xoserver' # эти тесты нужно запускать от рута
+require 'test_xoserver'

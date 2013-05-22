@@ -6,7 +6,6 @@ require 'xoserver'
 class XOServerTest < Test::Unit::TestCase
 	def setup
 		@host = 'localhost'
-		File.delete XOSERVER_LOCK_FILE if File.exist? XOSERVER_LOCK_FILE
 	end
 
 	def teardown
@@ -14,52 +13,117 @@ class XOServerTest < Test::Unit::TestCase
 		@socket.close if @socket != nil
 	end
 
-	def test_lock_file
-		@server = XOServer.new
-		assert_true @server.run
-		assert_true(File.exist?(XOSERVER_LOCK_FILE))
-	end
-
-	def test_run_single_instance
-		@server = XOServer.new
-		assert_true @server.run
-		assert_false @server.run
-	end
-
-	def test_run_single_instance_2
-		@port = 99997
-		assert_true XOServer.new(@port).run
-		assert_false XOServer.new(@port).run
+	def run_server_in_background
+		Thread.start {
+			@server = XOServer.new(@port)
+			@server.run
+		}
+		sleep 0.25
 	end
 
 	# integration tests
 
+	def test_login
+        @port = 99993
+		run_server_in_background
+		
+		@socket = TCPSocket.open @host, @port
+		request = { 'type' => MESSAGE_LOGIN }.to_json
+		@socket.puts request
+		response = JSON.parse @socket.gets
+		assert_equal({ 'type' => MESSAGE_LOGIN, 'xo' => X }, response)
+
+		@socket = TCPSocket.open @host, @port
+		request = { 'type' => MESSAGE_LOGIN }.to_json
+		@socket.puts request
+		response = JSON.parse @socket.gets
+		assert_equal({ 'type' => MESSAGE_LOGIN, 'xo' => O }, response)
+
+		@socket = TCPSocket.open @host, @port
+		request = { 'type' => MESSAGE_LOGIN }.to_json
+		@socket.puts request
+		response = JSON.parse @socket.gets
+		assert_equal({ 'type' => MESSAGE_LOGIN, 'error' => 'server is full' }, response)
+	end
+
+	def test_send_message_without_login
+		@port = 99994
+		run_server_in_background
+		@socket = TCPSocket.open @host, @port
+
+		request = { 'type' => MESSAGE_FIELD }.to_json
+		@socket.puts request
+		response = JSON.parse @socket.gets
+		assert_equal({ 'type' => MESSAGE_FIELD, 'error' => 'you are not logged' }, response)
+	end
+
+	def test_twice_logged
+		@port = 99982
+		run_server_in_background
+		@socket = TCPSocket.open @host, @port
+
+		request = { 'type' => MESSAGE_LOGIN }.to_json
+		@socket.puts request
+		@socket.gets
+		
+		request = { 'type' => MESSAGE_LOGIN }.to_json
+		@socket.puts request
+		response = JSON.parse @socket.gets
+		assert_equal({ 'type' => MESSAGE_LOGIN, 'error' => 'you are already logged' }, response)
+	end
+
+	def test_illegal_message
+		@port = 99981
+		run_server_in_background
+		@socket = TCPSocket.open @host, @port
+
+		request = { 'type' => MESSAGE_LOGIN }.to_json
+		@socket.puts request
+		@socket.gets
+
+		request = { 'type' => 12345 }.to_json
+		@socket.puts request
+		response = JSON.parse @socket.gets
+		assert_equal({ 'type' => 12345, 'error' => 'illegal request' }, response)
+	end
+
+	def test_illegal_message_without_login
+		@port = 99986
+		run_server_in_background
+		@socket = TCPSocket.open @host, @port
+
+		request = { 'type' => 12345 }.to_json
+		@socket.puts request
+		response = JSON.parse @socket.gets
+		assert_equal({ 'type' => 12345, 'error' => 'you are not logged' }, response)
+	end
+
 	def test_get_field
 		@port = 99999
-		@server = XOServer.new @port
-		@server.run
-		request = { 'type' => XOREQUEST_GET_FIELD }.to_json
+		run_server_in_background
 		@socket = TCPSocket.open @host, @port
+
+		@socket.puts({ 'type' => MESSAGE_LOGIN }.to_json)
+		@socket.gets
+
+		request = { 'type' => MESSAGE_FIELD }.to_json
 		@socket.puts request
-		@socket.flush
 		response_json = @socket.gets
 		response = JSON.parse response_json
-		assert_equal XOREQUEST_GET_FIELD, response['type']
-		assert_equal [], response['cells']
+		assert_equal({ 'type' => MESSAGE_FIELD, 'cells' => [] }, response)
 	end
 
 	def test_step
 		@port = 99998
-		@server = XOServer.new @port
-		@server.run
-		request = { 'type' => XOREQUEST_STEP, 'row' => 1, 'col' => 2, 'value' => X }.to_json
+		run_server_in_background
 		@socket = TCPSocket.open @host, @port
+
+		@socket.puts({ 'type' => MESSAGE_LOGIN }.to_json)
+		@socket.gets
+
+		request = { 'type' => MESSAGE_STEP, 'row' => 1, 'col' => 2, 'value' => X }.to_json
 		@socket.puts request
-		@socket.flush
-		response_json = @socket.gets
-		response = JSON.parse response_json
-		assert_equal XOREQUEST_STEP, response['type']
-		assert_equal true, response['success']
-		assert_equal nil, response['who_win']
+		response = JSON.parse @socket.gets
+		assert_equal({ 'type' => MESSAGE_STEP, 'success' => true, 'who_win' => nil }, response)
 	end
 end

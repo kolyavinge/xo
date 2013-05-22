@@ -1,9 +1,7 @@
-
 require 'game'
 require 'socket'
 require 'json'
 
-XOSERVER_LOCK_FILE = "/var/run/xo.pid"
 XOSERVER_DEFAULT_PORT = 4554
 
 class XOServer
@@ -11,23 +9,21 @@ class XOServer
 	def initialize port=XOSERVER_DEFAULT_PORT
 		@port = port
 		@game = Game.new
+		@xo = X
+		@clients = []
 	end
 
 	def run
-		return false if not first_run?
-
 		@server = TCPServer.open @port
-		Thread.start {
-			loop {
-			  client = @server.accept
-			  request = JSON.parse client.gets
-			  responce = proccess request
-			  client.puts responce.to_json
-			  client.close
+		loop {
+			Thread.start(@server.accept) { |client|
+				loop {
+				  	request = JSON.parse client.gets
+				  	response = proccess client, request
+				  	client.puts response.to_json
+				}
 			}
 		}
-
-		return true
 	end
 
 	def stop
@@ -36,42 +32,44 @@ class XOServer
 
 	private
 
-	def proccess request
-		responce = { 'type' => request['type'] }
-		if request['type'] == XOREQUEST_GET_FIELD
-			responce['cells'] = @game.field.to_a
-		elsif request['type'] == XOREQUEST_STEP
-			row = request['row']
-			col = request['col']
-			value = request['value']
-			success = @game.step row, col, value
-			responce['success'] = success
-			responce['who_win'] = @game.who_win
-		end
+	def proccess client, request
+		message_type = request['type']
+		
+		response = { 'type' => message_type }
 
-		return responce
-	end
-
-	def first_run?
-		if not File.exist? XOSERVER_LOCK_FILE
-			write_pid_to_lock_file
-			try_lock_file
-		else # lock file exist
-			if try_lock_file
-				write_pid_to_lock_file
-			else
-				return false
+		if message_type == MESSAGE_LOGIN
+			if @clients.include? client
+				response['error'] = 'you are already logged'
+				return response
 			end
+
+			if @xo == nil
+				response['error'] = 'server is full'
+			else
+				response['xo'] = @xo
+				@xo = if @xo == X then O else nil end
+				@clients << client
+			end
+
+			return response
 		end
 
-		return true
-	end
-
-	def try_lock_file
-		File.new(XOSERVER_LOCK_FILE).flock(File::LOCK_NB | File::LOCK_EX)
-	end
-
-	def write_pid_to_lock_file
-		File.open(XOSERVER_LOCK_FILE, 'w'){ |file| file << Process.pid }
+		if not @clients.include? client
+			response['error'] = 'you are not logged'
+			return response
+		end
+		
+		if message_type == MESSAGE_FIELD
+			response['cells'] = @game.field.to_a
+		elsif message_type == MESSAGE_STEP
+			row, col, value = request['row'], request['col'], request['value']
+		success = @game.step row, col, value
+		response['success'] = success
+		response['who_win'] = @game.who_win
+		else
+			response['error'] = 'illegal request'
+		end
+		
+		return response
 	end
 end
