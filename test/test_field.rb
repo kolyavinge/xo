@@ -37,6 +37,12 @@ class FieldTest < Test::Unit::TestCase
 		assert_false result
 	end
 
+	def test_wrong_step
+		field = Field.new 10, 4
+		result = field.step -1, -3, X
+		assert_false result
+	end
+
 	def test_find_winner_horizont
 		field = Field.new 10, 4
 		field.step 1, 3, X

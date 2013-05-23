@@ -32,7 +32,7 @@ class Field
 
 	def step row, col, value
 		cell = get_cell row, col
-		if cell.value == CELL_EMPTY
+		if cell != nil && cell.value == CELL_EMPTY
 			cell.value = value
 			@last_cell = cell
 			return true

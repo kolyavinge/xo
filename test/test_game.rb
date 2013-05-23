@@ -26,10 +26,15 @@ class GameTest < Test::Unit::TestCase
 		assert_equal O, game.whose_step
 	end
 
-	def test_wrong_step
+	def test_wrong_step_twice_x
 		game = Game.new
 		assert_true(game.step 1, 2, X)
 		assert_false(game.step 1, 3, X)
+	end
+
+	def test_wrong_step
+		game = Game.new
+		assert_false(game.step -1, -2, X)
 	end
 
 	def test_end_game
