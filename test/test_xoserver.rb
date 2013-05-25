@@ -1,3 +1,8 @@
+#!/usr/bin/ruby
+
+$LOAD_PATH.unshift('../lib')
+$LOAD_PATH.unshift('.')
+
 require 'unittest'
 require 'contracts'
 require 'json'
@@ -11,6 +16,7 @@ class XOServerTest < Test::Unit::TestCase
 	def teardown
 		@server.stop if @server != nil
 		@socket.close if @socket != nil
+
 	end
 
 	def run_server_in_background
@@ -18,13 +24,13 @@ class XOServerTest < Test::Unit::TestCase
 			@server = XOServer.new(@port)
 			@server.run
 		}
-		sleep 0.25
+		sleep 0.01
 	end
 
 	# integration tests
 
 	def test_login
-		print "test_login\n"
+		print "\ntest_login "
         @port = 99993
 		run_server_in_background
 		
@@ -48,7 +54,7 @@ class XOServerTest < Test::Unit::TestCase
 	end
 
 	def test_send_message_without_login
-		print "test_send_message_without_login\n"
+		print "\ntest_send_message_without_login "
 		@port = 99994
 		run_server_in_background
 		@socket = TCPSocket.open @host, @port
@@ -60,7 +66,7 @@ class XOServerTest < Test::Unit::TestCase
 	end
 
 	def test_twice_logged
-		print "test_twice_logged\n"
+		print "\ntest_twice_logged "
 		@port = 99982
 		run_server_in_background
 		@socket = TCPSocket.open @host, @port
@@ -76,7 +82,7 @@ class XOServerTest < Test::Unit::TestCase
 	end
 
 	def test_illegal_message
-		print "test_illegal_message\n"
+		print "\ntest_illegal_message "
 		@port = 99981
 		run_server_in_background
 		@socket = TCPSocket.open @host, @port
@@ -92,7 +98,7 @@ class XOServerTest < Test::Unit::TestCase
 	end
 
 	def test_illegal_message_without_login
-		print "test_illegal_message_without_login\n"
+		print "\ntest_illegal_message_without_login "
 		@port = 99986
 		run_server_in_background
 		@socket = TCPSocket.open @host, @port
@@ -104,7 +110,7 @@ class XOServerTest < Test::Unit::TestCase
 	end
 
 	def test_get_field
-		print "test_get_field\n"
+		print "\ntest_get_field "
 		@port = 99999
 		run_server_in_background
 		@socket = TCPSocket.open @host, @port
@@ -120,7 +126,7 @@ class XOServerTest < Test::Unit::TestCase
 	end
 
 	def test_step
-		print "test_step\n"
+		print "\ntest_step "
 		@port = 99977
 		run_server_in_background
 		
@@ -138,11 +144,11 @@ class XOServerTest < Test::Unit::TestCase
 		assert_equal({ 'type' => MESSAGE_STEP, 'row' => 1, 'col' => 2, 'value' => X, 'success' => true, 'who_win' => nil }, response)
 
 		response = JSON.parse @socket2.gets
-		assert_equal({ 'type' => MESSAGE_STEP, 'row' => 1, 'col' => 2, 'value' => X, 'who_win' => nil }, response)
+		assert_equal({ 'type' => MESSAGE_STEP_OPPONENT, 'row' => 1, 'col' => 2, 'value' => X, 'who_win' => nil }, response)
 	end
 
 	def test_wrong_step
-		print "test_wrong_step\n"
+		print "\ntest_wrong_step "
 		@port = 99978
 		run_server_in_background
 		
@@ -159,11 +165,43 @@ class XOServerTest < Test::Unit::TestCase
 		response = JSON.parse @socket1.gets
 		assert_equal({ 'type' => MESSAGE_STEP, 'row' => -1, 'col' => 2, 'value' => X, 'success' => false, 'who_win' => nil }, response)
 
-		sleep 2
 		assert_false socket_ready? @socket2
 	end
 
+	def test_wrong_message
+		print "\ntest_wrong_message "
+		@port = 99946
+		run_server_in_background
+		@socket = TCPSocket.open @host, @port
+
+		request = { 'type' => MESSAGE_LOGIN }.to_json
+		@socket.puts request
+		@socket.gets
+
+		request = { }.to_json
+		@socket.puts request
+		response = JSON.parse @socket.gets
+		
+		assert_equal({ 'type' => nil, 'error' => 'illegal request' }, response)
+	end
+
+	def test_send_not_json
+		print "\ntest_send_not_json "
+		@port = 99945
+		run_server_in_background
+		@socket = TCPSocket.open @host, @port
+
+		request = { 'type' => MESSAGE_LOGIN }.to_json
+		@socket.puts request
+		@socket.gets
+
+		@socket.puts "not a json !"
+		response = JSON.parse @socket.gets
+		
+		assert_equal({ 'type' => nil, 'error' => 'illegal request' }, response)
+	end
+
 	def socket_ready? socket
-		not IO.select([socket], nil, nil, 0) == nil
+		not IO.select([socket], nil, nil, 1) == nil
 	end
 end

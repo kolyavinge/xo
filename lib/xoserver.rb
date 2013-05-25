@@ -18,14 +18,11 @@ class XOServer
 		loop {
 			Thread.start(@server.accept) { |client|
 				loop {
-				  	client_request = JSON.parse client.gets
-
-				  	client_response = get_client_response client, client_request
-				  	client.puts client_response.to_json
-
-				  	opponent = get_opponent_for client
-				  	opponent_response = get_opponent_response client_response
-				  	opponent.puts opponent_response.to_json if opponent_response != nil
+					begin
+				  		try_process_request client
+				  	rescue
+				  		print @error
+				  	end
 				}
 			}
 		}
@@ -36,6 +33,25 @@ class XOServer
 	end
 
 	private
+
+	def try_process_request client
+		client_request = json_parse_or_default client.gets
+
+	  	client_response = get_client_response client, client_request
+	  	client.puts client_response.to_json
+
+	  	opponent = get_opponent_for client
+	  	opponent_response = get_opponent_response client_response
+	  	opponent.puts opponent_response.to_json if opponent_response != nil
+	end
+
+	def json_parse_or_default json
+		begin
+			return JSON.parse json
+		rescue
+			return { }
+		end
+	end
 
 	def get_client_response client, request
 		message_type = request['type']
@@ -83,8 +99,11 @@ class XOServer
 
 	def get_opponent_response client_response
 		if client_response['type'] == MESSAGE_STEP && client_response['success'] == true
-			row, col, value = client_response['row'], client_response['col'], client_response['value']
-			return { 'type' => MESSAGE_STEP, 'row' => row, 'col' => col, 'value' => value, 'who_win' => client_response['who_win'] }
+			return { 'type'    => MESSAGE_STEP_OPPONENT,
+				     'row'     => client_response['row'],
+				     'col'     => client_response['col'],
+				     'value'   => client_response['value'],
+				     'who_win' => client_response['who_win'] }
 		else
 			return nil
 		end
