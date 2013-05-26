@@ -68,6 +68,7 @@ class XOServer
 				response['error'] = 'server is full'
 			else
 				response['xo'] = @xo
+				response['size'] = @game.field.size
 				@xo = if @xo == X then O else nil end
 				@clients << client
 			end

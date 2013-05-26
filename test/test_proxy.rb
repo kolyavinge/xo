@@ -36,7 +36,7 @@ class ProxyTest < Test::Unit::TestCase
 		@proxy.login_completed = Proc.new { |response| @actual = response }
 		@proxy.login
 		sleep 0.1
-		expected = { 'type' => MESSAGE_LOGIN, 'xo' => X }
+		expected = { 'type' => MESSAGE_LOGIN, 'xo' => X, 'size' => 20 }
 		assert_equal expected, @actual
 	end
 

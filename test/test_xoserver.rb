@@ -38,13 +38,13 @@ class XOServerTest < Test::Unit::TestCase
 		request = { 'type' => MESSAGE_LOGIN }.to_json
 		@socket.puts request
 		response = JSON.parse @socket.gets
-		assert_equal({ 'type' => MESSAGE_LOGIN, 'xo' => X }, response)
+		assert_equal({ 'type' => MESSAGE_LOGIN, 'xo' => X, 'size' => 20 }, response)
 
 		@socket = TCPSocket.open @host, @port
 		request = { 'type' => MESSAGE_LOGIN }.to_json
 		@socket.puts request
 		response = JSON.parse @socket.gets
-		assert_equal({ 'type' => MESSAGE_LOGIN, 'xo' => O }, response)
+		assert_equal({ 'type' => MESSAGE_LOGIN, 'xo' => O, 'size' => 20 }, response)
 
 		@socket = TCPSocket.open @host, @port
 		request = { 'type' => MESSAGE_LOGIN }.to_json

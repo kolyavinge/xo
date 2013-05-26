@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 
-$LOAD_PATH.unshift(Dir.pwd + '/lib')
-$LOAD_PATH.unshift(Dir.pwd + '/test')
+$LOAD_PATH.unshift('./lib')
+$LOAD_PATH.unshift('./test')
 
 require 'test/unit'
 require 'unittest'
