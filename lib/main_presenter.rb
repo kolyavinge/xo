@@ -59,11 +59,16 @@ class MainPresenter
 		}
 	
 		@proxy.login
+		poll
 	end
 
 	def step row, col
-		print "step: row=#{row}, col=#{col}, value=#{@xo}\n"
+		print "client: step to row=#{row}, col=#{col}, value=#{@xo}\n"
 		@proxy.step row, col, @xo
+	end
+
+	def poll
+		@proxy.poll
 	end
 	
 	private

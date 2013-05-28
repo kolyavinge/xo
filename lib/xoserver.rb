@@ -19,6 +19,7 @@ class XOServer
 			Thread.start(@server.accept) { |client|
 				loop {
 					begin
+						#print "server: accept client\n"
 				  		try_process_request client
 				  	rescue
 				  		print @error
@@ -39,10 +40,12 @@ class XOServer
 
 	  	client_response = get_client_response client, client_request
 	  	client.puts client_response.to_json
+	  	#print "server: send message to client\n"
 
 	  	opponent = get_opponent_for client
 	  	opponent_response = get_opponent_response client_response
 	  	opponent.puts opponent_response.to_json if opponent_response != nil
+	  	#print "server: send message to opponent\n" if opponent_response != nil
 	end
 
 	def json_parse_or_default json

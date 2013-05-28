@@ -35,7 +35,7 @@ class ProxyTest < Test::Unit::TestCase
 		@proxy = Proxy.new(@host, @port)
 		@proxy.login_completed = Proc.new { |response| @actual = response }
 		@proxy.login
-		sleep 0.1
+		@proxy.poll
 		expected = { 'type' => MESSAGE_LOGIN, 'xo' => X, 'size' => 20 }
 		assert_equal expected, @actual
 	end
@@ -43,11 +43,15 @@ class ProxyTest < Test::Unit::TestCase
 	def test_get_field
 		@port = 7775
 		run_server_in_background
+		
 		@proxy = Proxy.new(@host, @port)
 		@proxy.login
+		@proxy.poll
+
 		@proxy.get_field_completed = Proc.new { |response| @actual = response }
 		@proxy.get_field
-		sleep 0.1
+		@proxy.poll
+
 		expected = { 'type' => MESSAGE_FIELD, 'cells' => [] }
 		assert_equal expected, @actual
 	end
@@ -56,10 +60,15 @@ class ProxyTest < Test::Unit::TestCase
 		@port = 7774
 		run_server_in_background
 		@proxy = Proxy.new(@host, @port)
+	
 		@proxy.login
+		@proxy.poll
+
 		@proxy.step_completed = Proc.new { |response| @actual = response }
+		
 		@proxy.step 1, 2, X
-		sleep 0.1
+		@proxy.poll
+		
 		expected = { 'type' => MESSAGE_STEP, 'row' => 1, 'col' => 2, 'value' => X, 'success' => true, 'who_win' => nil }
 		assert_equal expected, @actual
 	end
@@ -70,13 +79,16 @@ class ProxyTest < Test::Unit::TestCase
 		
 		@proxy1 = Proxy.new(@host, @port)
 		@proxy1.login
+		@proxy1.poll
 		
 		@proxy2 = Proxy.new(@host, @port)
 		@proxy2.login
+		@proxy2.poll
 		@proxy2.opponent_step_completed = Proc.new { |response| @actual = response }
 
 		@proxy1.step 1, 2, X
-		sleep 0.1
+		@proxy1.poll
+		@proxy2.poll
 
 		expected = { 'type' => MESSAGE_STEP_OPPONENT, 'row' => 1, 'col' => 2, 'value' => X, 'who_win' => nil }
 		assert_equal expected, @actual
